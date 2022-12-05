@@ -3,7 +3,15 @@
 Пример результата:  
 ![image](https://user-images.githubusercontent.com/30326049/204719848-0a66acda-4c8b-42dc-b4d6-d244e297ee4d.png)
 
+Для запуска докер контейнера использовать команду
+```
+sudo docker run -d --name generator -p 80:80 kreikten/captcha_generator
+```
 
+Для запуска необходимо ввести команде, находясь в корневом каталоге репозитория:
+```
+uvicorn Captcha_generator.app:application --host 0.0.0.0 --port 80
+```
 Модель нейронной сети
 ===========================
 
@@ -55,7 +63,7 @@ FastAPI приложение
 
 ```
 import requests
-req = requests.get("http://127.0.0.1:8000/generate")
+req = requests.get("http://127.0.0.1/generate")
 ```
 После чего в случае успеха(status_code == 200) будет возвращен словарь вида:
 ```
@@ -110,11 +118,8 @@ FastAPI приложение - *app.py*
 
 Реализованные запросы:  
 
-GET /?fileId - позволяет скачать файл по указанному id  
+GET /{file_id} - позволяет скачать файл по указанному id  
 GET /generate - генерирует капчу и возвращает словарь с кодом и ссылкой на изображение  
 POST /load - загружает изображение на сервер и регистрирует его в программе  
 
-Для запуска необходимо ввести команду в командной строке:  
-```
-uvicorn Captcha_test_generator.app:application --host 0.0.0.0 --port 8000
-```
+
