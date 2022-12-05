@@ -1,0 +1,142 @@
+
+from Captcha_generator.neural_network import *
+
+import numpy as np
+import datetime
+import cv2
+
+cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+
+def gasuss_noise(image, mean=0, var=0.001):
+    '''
+    Добавляет гауссовский шум.
+    Input:
+        image - np.ndarray массив, представляющий картинку,
+        mean: среднее значение,
+        var: Разнообразие.
+    Output:
+        out - картинка с добавленным шумом
+    '''
+
+    image = np.array(image / 255, dtype=float)
+    noise = np.random.normal(mean, var ** 0.5, image.shape)
+    out = image + noise
+    if out.min() < 0:
+        low_clip = -1.
+    else:
+        low_clip = 0.
+    out = np.clip(out, low_clip, 1.0)
+    out = np.uint8(out * 255)
+
+    return out
+
+
+def concat_pics(pics: list):
+    '''
+    Объединяет сгенерированные картинки в одну большую.
+    Input:
+        pics - список картинок.
+    Output:
+        captcha - одна большая картинка.
+    '''
+    captcha = pics[0]
+    for i in range(1, len(pics)):
+        captcha = np.hstack([captcha, pics[i]])
+    return captcha
+def from_3_to_2(array):
+    array_fixed = zeros((len(array), len(len(array))))
+    for i in range(len(array)):
+        for j in range (len(len(array))):
+            array_fixed[i][j] = array[i][j][0]
+    return array_fixed
+
+
+def save_pic(picture,filename):
+    '''
+    Объединяет сгенерированные картинки в одну большую.
+    Input:
+        pics - список картинок.
+    Output:
+        captcha - одна большая картинка.
+    '''
+
+
+    figure = plt.gcf()
+    figure.set_size_inches(28*6 / 100, 28 / 100)
+    plt.axis('off')
+    plt.imshow(picture[:,:,0]*127.5+127.5, cmap = "gray")
+    plt.gca().set_position([0, 0, 1, 1])
+    plt.savefig(filename, dpi=100)
+
+
+def add_noise(picture_path:str):
+    '''
+    Добавляет шум на изображение по пути picture_path и пересохраняет его.
+    Input:
+        picture_path - путь к картинке.
+    '''
+    img = cv2.imread(picture_path) #прочитать изображение в массив
+    print("readed shape = ", img.shape)
+   # print(img.shape)
+  #  output = cv2.resize(img, (28*6*5, 28*5), interpolation=cv2.INTER_AREA)
+  #  print(output.shape)
+    out2 = gasuss_noise(img, mean=0, var=0.0001) # добавить шум
+    save_pic(out2, picture_path) # сохранить
+
+def generate_captcha(text: str):
+    '''
+    Генерирует с помощью нейросети изображения латинских букв и цифр, создавая капчу в виде изображения.
+    Input:
+        text - текст капчи.
+    Output:
+        filename - имя сгенерированного изображения в файловой системе.
+    '''
+
+    pic_list = [] #список изображений каждого символа
+    for i in text: #идем по заданной строке и для каждого символа подгружаем модель нейросети и создаем изображение
+
+        #воссоздаём модель нейросети
+        generator = make_generator_model()
+        discriminator = make_discriminator_model()
+        noise = tf.random.normal([1, 100])
+        generator_optimizer = tf.keras.optimizers.Adam(1e-4)
+        discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
+
+        #указываем путь к моделям
+        checkpoint_dir ="Captcha_generator"
+        checkpoint_prefix = os.path.join(checkpoint_dir,"training_checkpoints", i, "ckpt-1")
+
+        #загружаем модель
+        checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
+                                         discriminator_optimizer=discriminator_optimizer,
+                                         generator=generator,
+                                         discriminator=discriminator)
+        checkpoint.read(save_path=checkpoint_prefix)
+
+        #генерируем изображение
+        generated_image = generator(noise, training=False)
+
+        #добавляем в список
+        pic_list.append(generated_image[0])
+    s = concat_pics(pic_list) #объединяем все картинки в одну
+
+    #создаем имя файла
+    basename = "captcha"
+    suffix = datetime.datetime.now().strftime("%y%m%d_%H%M%S")
+    filename = basename + "_" + suffix + ".jpg"
+    #print("base shape = ", s.shape)
+    save_pic(s, filename) #сохраняем изображение
+   # img = cv2.imread(filename) #прочитать изображение в массив
+
+
+   # cv2.imwrite(filename,cv2.resize(img, (28*6*3, 28*3), interpolation=cv2.INTER_AREA))
+    add_noise(filename) #добавляем шум
+
+    return filename
+
+#filename = generate_captcha("yyywww")
+
+#b f g j k q r u на переобучение
+# потетстить ещё: v w x y и дообучить
+
+
